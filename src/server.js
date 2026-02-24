@@ -50,6 +50,20 @@ if (process.env.MONGODB_URI || process.env.NODE_ENV === 'production') {
   const messageRoutes = require('./routes/messageRoutes');
   const fitnessDataRoutes = require('./routes/fitnessDataRoutes');
   const aiInsightRoutes = require('./routes/aiInsightRoutes');
+  const billingRoutes = require('./routes/billing');
+  const prescriptionRoutes = require('./routes/prescriptions');
+  const vitalsRoutes = require('./routes/vitals');
+  const wardRoutes = require('./routes/wards');
+  const paymentsRoutes = require('./routes/payments');
+  const appointmentFlowRoutes = require('./routes/appointmentFlow');
+  const medicineRoutes = require('./routes/medicines');
+  const purchaseOrderRoutes = require('./routes/purchaseOrders');
+
+  // Middleware to attach wsServer to req for route usage
+  app.use((req, res, next) => {
+    req.wsServer = wsServer;
+    next();
+  });
 
   app.use('/api/users', userRoutes);
   app.use('/api/appointments', appointmentRoutes);
@@ -59,6 +73,14 @@ if (process.env.MONGODB_URI || process.env.NODE_ENV === 'production') {
   app.use('/api/messages', messageRoutes);
   app.use('/api/fitness-data', fitnessDataRoutes);
   app.use('/api/ai-insights', aiInsightRoutes);
+  app.use('/api/billing', billingRoutes);
+  app.use('/api/prescriptions', prescriptionRoutes);
+  app.use('/api/vitals', vitalsRoutes);
+  app.use('/api/wards', wardRoutes);
+  app.use('/api/payments', paymentsRoutes);
+  app.use('/api/flow', appointmentFlowRoutes);
+  app.use('/api/medicines', medicineRoutes);
+  app.use('/api/purchase-orders', purchaseOrderRoutes);
 } else {
   console.log('MongoDB not configured. API routes requiring database access will not be available.');
   console.log('To enable database features, set MONGODB_URI in your .env file.');

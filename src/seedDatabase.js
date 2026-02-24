@@ -13,9 +13,12 @@ const ActivityLog = require('./models/ActivityLog');
 const Message = require('./models/Message');
 const Queue = require('./models/Queue');
 const AIInsight = require('./models/AIInsight');
+const Prescription = require('./models/Prescription');
 const Attendance = require('./models/Attendance');
 const FitnessData = require('./models/FitnessData');
 const KnowledgeArticle = require('./models/KnowledgeArticle');
+const Vitals = require('./models/Vitals');
+const Bill = require('./models/Bill');
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -46,50 +49,34 @@ const seedUsers = async () => {
         await Attendance.deleteMany({});
         await FitnessData.deleteMany({});
         await KnowledgeArticle.deleteMany({});
+        await Prescription.deleteMany({});
+        await Vitals.deleteMany({});
+        await Bill.deleteMany({});
 
         console.log('Cleared existing collections');
 
         // Create test users with different roles
         const testUsers = [
-            // Patients
+            // 1 Explicit Demo Patient
             {
-                username: 'patient1',
+                username: 'patient1', password: 'patient123', role: 'patient', name: 'Demo Patient',
+                email: 'demo.patient@example.com', age: 35, gender: 'Male', phone: '+919876543200', address: 'Demo Address, Hyderabad', bloodGroup: 'O+'
+            },
+            // 50 Indian Patient Profiles for testing conditions
+            ...(Array.from({ length: 50 }).map((_, i) => ({
+                username: `patient${i + 2}`,
                 password: 'patient123',
                 role: 'patient',
-                name: 'John Doe',
-                email: 'john.doe@example.com',
-                age: 35,
-                gender: 'Male',
-                phone: '+1234567890',
-                address: '123 Main St, City, State',
-                bloodGroup: 'O+'
-            },
-            {
-                username: 'patient2',
-                password: 'patient123',
-                role: 'patient',
-                name: 'Jane Smith',
-                email: 'jane.smith@example.com',
-                age: 28,
-                gender: 'Female',
-                phone: '+1234567891',
-                address: '456 Oak Ave, City, State',
-                bloodGroup: 'A-'
-            },
-            {
-                username: 'patient3',
-                password: 'patient123',
-                role: 'patient',
-                name: 'Robert Johnson',
-                email: 'robert.johnson@example.com',
-                age: 45,
-                gender: 'Male',
-                phone: '+1234567892',
-                address: '789 Pine Rd, City, State',
-                bloodGroup: 'B+'
-            },
+                name: `${['Aarav', 'Vihaan', 'Vivaan', 'Ananya', 'Diya', 'Advik', 'Kabir', 'Anaya', 'Aaradhya', 'Ojas', 'Rohan', 'Neha', 'Aditya', 'Kavya', 'Rahul', 'Divya', 'Priya', 'Vikram', 'Anjali', 'Arjun', 'Sai', 'Kartik', 'Aisha', 'Pooja', 'Sneha', 'Nisha', 'Riya', 'Kiran', 'Amit', 'Sunil', 'Ajay', 'Vijay', 'Raj', 'Sanjay', 'Mukesh', 'Ramesh', 'Suresh', 'Dinesh', 'Mahesh', 'Ashok', 'Anand', 'Ganesh', 'Kishore', 'Mohan', 'Srinivas', 'Venkatesh', 'Ravi', 'Prakash', 'Deepak', 'Arnav'][i] || 'Demo'} ${['Patel', 'Sharma', 'Singh', 'Reddy', 'Gupta', 'Desai', 'Verma', 'Iyer', 'Joshi', 'Nair', 'Kumar', 'Rao', 'Choudhury', 'Das', 'Mukherjee', 'Banerjee', 'Chatterjee', 'Bose', 'Mitra', 'Dutta', 'Ghosh', 'Sen', 'Sinha', 'Roy', 'Mehta', 'Shah', 'Modi', 'Gandhi', 'Thakkar', 'Soni', 'Chauhan', 'Rajput', 'Mishra', 'Pandey', 'Tiwari', 'Shukla', 'Dubey', 'Tripathi', 'Bhatt', 'Kaul', 'Raina', 'Kachroo', 'Tickoo', 'Zutshi', 'Mattoo', 'Qazi', 'Gowda', 'Naidu', 'Chauhan', 'Pillai'][i] || 'User'}`,
+                email: `patient${i + 2}@example.com`,
+                age: 20 + (i % 55),
+                gender: i % 2 === 0 ? 'Male' : 'Female',
+                phone: `+9198765432${String(i + 1).padStart(2, '0')}`,
+                address: ['Banjara Hills', 'Jubilee Hills', 'Madhapur', 'Kondapur', 'Gachibowli'][i % 5] + ', Hyderabad',
+                bloodGroup: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'][i % 8]
+            }))),
 
-            // Doctors with DOC format
+            // 3 Doctors (1 default + 2 others)
             {
                 username: 'DOC001',
                 password: 'CARDIO2024',
@@ -117,63 +104,17 @@ const seedUsers = async () => {
                 department: 'Emergency Medicine',
                 specialization: 'Emergency Physician'
             },
-            {
-                username: 'DOC004',
-                password: 'ORTHOPEDICS2024',
-                role: 'doctor',
-                name: 'Dr. Sarah Johnson',
-                email: 'sarah.johnson@example.com',
-                department: 'Orthopedics',
-                specialization: 'Orthopedic Surgeon'
-            },
-            {
-                username: 'DOC005',
-                password: 'PEDIATRICS2024',
-                role: 'doctor',
-                name: 'Dr. Michael Chen',
-                email: 'michael.chen@example.com',
-                department: 'Pediatrics',
-                specialization: 'Pediatrician'
-            },
 
-            // Reception staff
-            {
-                username: 'reception1',
-                password: 'reception123',
-                role: 'reception',
-                name: 'Reception Staff',
-                email: 'reception@example.com'
-            },
+            // 1 Receptionist
             {
                 username: 'REC001',
                 password: 'RECEPTION2024',
-                role: 'reception',
-                name: 'Priya Sharma',
-                email: 'priya.sharma@example.com'
-            },
-            {
-                username: 'REC002',
-                password: 'PAT2024',
-                role: 'reception',
-                name: 'Anjali Patel',
-                email: 'anjali.patel@example.com'
-            },
-            {
-                username: 'REC003',
-                password: 'REDDY2024',
-                role: 'reception',
-                name: 'Sneha Reddy',
-                email: 'sneha.reddy@example.com'
+                role: 'receptionist',
+                name: 'Monika',
+                email: 'monika@example.com'
             },
 
-            // Admin users
-            {
-                username: 'admin1',
-                password: 'admin123',
-                role: 'admin',
-                name: 'System Administrator',
-                email: 'admin@example.com'
-            },
+            // 3 Admins
             {
                 username: 'ADM001',
                 password: 'YOGA2024',
@@ -194,6 +135,28 @@ const seedUsers = async () => {
                 role: 'admin',
                 name: 'Bhimavarapu Bhavana',
                 email: 'bhimavarapu.bhavana@example.com'
+            },
+            // Nurse and Pharmacist users
+            {
+                username: 'NUR001',
+                password: 'NURSE2024',
+                role: 'nurse',
+                name: 'Bhetapudi Manasa',
+                email: 'bhetapudi.nurse@example.com'
+            },
+            {
+                username: 'NUR002',
+                password: 'PAT2024',
+                role: 'nurse',
+                name: 'Rohan Gupta',
+                email: 'rohan.g@example.com'
+            },
+            {
+                username: 'PHAR001',
+                password: 'PHAR2024',
+                role: 'pharmacist',
+                name: 'Anjali Sharma',
+                email: 'anjali.s@example.com'
             }
         ];
 
@@ -245,7 +208,10 @@ const seedPatients = async (users) => {
                 bloodType: user.bloodGroup || 'Unknown',
                 height: Math.floor(Math.random() * 50) + 150, // Random height between 150-200cm
                 weight: Math.floor(Math.random() * 50) + 50, // Random weight between 50-100kg
-                lastVisit: new Date()
+                lastVisit: new Date(),
+                aadhaarNumber: String(Math.floor(100000000000 + Math.random() * 900000000000)), // 12 digit string
+                mobileNumber: '+91' + String(Math.floor(6000000000 + Math.random() * 3999999999)), // 10 digit Indian number
+                mobileVerified: true
             };
 
             const patient = new Patient(patientData);
@@ -268,44 +234,104 @@ const seedAppointments = async (users, patients) => {
         const doctorUsers = users.filter(user => user.role === 'doctor');
         const createdAppointments = [];
 
-        // Create sample appointments
-        const appointmentsData = [
-            {
-                patientId: patients[0]._id,
-                doctorId: doctorUsers[0]._id,
-                scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-                status: 'scheduled',
-                priority: 'normal',
-                symptoms: 'Regular checkup',
-                notes: 'Annual physical examination'
-            },
-            {
-                patientId: patients[1]._id,
-                doctorId: doctorUsers[1]._id,
-                scheduledAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // In 2 days
-                status: 'scheduled',
-                priority: 'urgent',
-                symptoms: 'Headache and dizziness',
-                notes: 'Patient reports persistent headaches'
-            },
-            {
-                patientId: patients[0]._id,
-                doctorId: doctorUsers[2]._id,
-                scheduledAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
-                status: 'completed',
-                priority: 'normal',
-                symptoms: 'Follow-up visit',
-                diagnosis: 'Minor hypertension',
-                treatment: 'Prescribed medication and lifestyle changes',
-                notes: 'Patient responding well to treatment'
-            }
+        // Create 51 demo appointments across 3 primary doctors
+        const symptomsList = [
+            { s: 'Severe chest pain, shortness of breath', p: 'urgent', n: 'Needs immediate ECG' },
+            { s: 'Palpitations', p: 'normal', n: 'Routine checkup' },
+            { s: 'High blood pressure', p: 'normal', n: 'Follow-up for BP' },
+            { s: 'Chronic migraines', p: 'normal', n: 'Assess for triggers' },
+            { s: 'Dizziness and blurred vision', p: 'urgent', n: 'Neurological exam' },
+            { s: 'Numbness in left arm', p: 'normal', n: 'Check nerve conduction' },
+            { s: 'Memory gaps', p: 'normal', n: 'Follow up', d: 'Mild Cognitive Impairment', t: 'Cognitive exercises' },
+            { s: 'Severe trauma from fall', p: 'critical', n: 'Patient requires immediate stabilization' },
+            { s: 'Allergic reaction, swelling', p: 'urgent', n: 'Administer antihistamines' },
+            { s: 'Asthma attack', p: 'critical', n: 'Stable now', d: 'Acute Exacerbation', t: 'Nebulization' },
+            { s: 'Fever and chills', p: 'normal', n: 'Prescribe antipyretics' },
+            { s: 'Stomach ache', p: 'normal', n: 'Recommend ultrasound' },
+            { s: 'Joint pain', p: 'normal', n: 'Refer to Orthopedics' },
+            { s: 'Skin rash', p: 'normal', n: 'Prescribe topical cream' },
+            { s: 'Persistent cough', p: 'urgent', n: 'Chest X-ray needed' }
         ];
+
+        const appointmentsData = [];
+        const nurses = users.filter(user => user.role === 'nurse');
+
+        // 1. 30 Completed Patients (10 per doctor)
+        for (let i = 1; i <= 30; i++) {
+            const docIndex = Math.floor((i - 1) / 10); // 0, 1, or 2
+            const nurseIndex = i <= 15 ? 0 : 1; // 1-15 -> NUR001, 16-30 -> NUR002
+            const symp = symptomsList[i % symptomsList.length];
+            const schedTime = new Date(Date.now() - (60 * i) * 60000); // past
+            appointmentsData.push({
+                patientId: patients[i]?._id,
+                doctorId: doctorUsers[docIndex]?._id,
+                scheduledAt: schedTime, // past
+                status: 'completed',
+                priority: symp.p,
+                symptoms: symp.s,
+                notes: symp.n,
+                diagnosis: symp.d || 'Routine Analysis',
+                treatment: symp.t || 'Rest and medication',
+                // Additional historical tracking for nurses
+                vitalsRecordedBy: nurses[nurseIndex]?._id,
+                vitalsRecordedAt: new Date(schedTime.getTime() - 15 * 60000),
+                checkedInAt: new Date(schedTime.getTime() - 30 * 60000),
+                consultationStartedAt: schedTime,
+                consultationEndedAt: new Date(schedTime.getTime() + 15 * 60000),
+                completedAt: new Date(schedTime.getTime() + 20 * 60000),
+                opdFeePaid: true,
+                opdFeeCollectedAt: new Date(schedTime.getTime() - 30 * 60000),
+                opdFeePaymentMethod: ['upi', 'card', 'cash'][i % 3]
+            });
+        }
+
+        // 2. 20 Active / Queued Patients
+        for (let i = 31; i <= 50; i++) {
+            const docIndex = i <= 40 ? 0 : (i <= 45 ? 1 : 2); // 10 to Doc1, 5 to Doc2, 5 to Doc3
+            const symp = symptomsList[i % symptomsList.length];
+            const status = i % 3 === 0 ? 'consulting' : 'booked';
+            appointmentsData.push({
+                patientId: patients[i]?._id,
+                doctorId: doctorUsers[docIndex]?._id,
+                scheduledAt: new Date(Date.now() + (15 * (i - 30)) * 60000),
+                status: status,
+                priority: symp.p,
+                symptoms: symp.s,
+                notes: symp.n
+            });
+        }
+
+        // 3. Explicit Active Appointment for the Demo Patient (patient 0)
+        appointmentsData.push({
+            patientId: patients[0]?._id,
+            doctorId: doctorUsers[0]?._id, // Assign to default doctor DOC001
+            scheduledAt: new Date(Date.now() + 10 * 60000),
+            status: 'booked',
+            priority: 'normal',
+            symptoms: 'Routine Checkup and Platform Demo',
+            notes: 'Demo Patient'
+        });
 
         for (const apptData of appointmentsData) {
             const appointment = new Appointment(apptData);
             await appointment.save();
             createdAppointments.push(appointment);
             console.log(`Created appointment: Patient ${apptData.patientId} with Doctor ${apptData.doctorId}`);
+
+            // If appointment is active (consulting or booked), add to Queue
+            if (apptData.status === 'consulting' || apptData.status === 'booked') {
+                const queueStatus = apptData.status === 'consulting' ? 'in-consultation' : 'waiting';
+                const queueEntry = new Queue({
+                    patientId: apptData.patientId,
+                    doctorId: apptData.doctorId,
+                    position: Math.floor(Math.random() * 5) + 1,
+                    estimatedWaitTime: Math.floor(Math.random() * 30) + 5,
+                    status: queueStatus,
+                    priority: apptData.priority
+                });
+                await queueEntry.save();
+                console.log(`Added patient ${apptData.patientId} to Queue for Doctor ${apptData.doctorId}`);
+            }
         }
 
         console.log('Appointments seeded successfully!');
@@ -336,7 +362,7 @@ const seedActivityLogs = async (users) => {
                 ipAddress: '192.168.1.101'
             },
             {
-                userId: users.find(u => u.username === 'admin1')._id,
+                userId: users.find(u => u.username === 'ADM001')._id,
                 action: 'update_profile',
                 details: 'Admin updated user profile',
                 ipAddress: '192.168.1.102'
@@ -354,6 +380,155 @@ const seedActivityLogs = async (users) => {
         return createdLogs;
     } catch (error) {
         console.error('Error seeding activity logs:', error);
+        throw error;
+    }
+};
+
+// Seed prescriptions
+const seedPrescriptions = async (users, patients, appointments) => {
+    try {
+        const doctorUsers = users.filter(user => user.role === 'doctor');
+        const createdPrescriptions = [];
+
+        // Generate detailed prescriptions for completed consulting/booked cases randomly covering the 50 patients
+        const prescriptionsData = appointments.map((appt, i) => {
+            if (appt.status !== 'completed' && appt.status !== 'consulting') return null; // Only give rx to some patients
+            const patient = patients.find(p => String(p._id) === String(appt.patientId));
+            const doc = doctorUsers.find(d => String(d._id) === String(appt.doctorId));
+            if (!patient || !doc) return null;
+
+            // Look up the actual user to get the name
+            const patientUser = users.find(u => String(u._id) === String(patient.userId));
+            const patientName = patientUser ? patientUser.name : `Patient ${i + 1}`;
+
+            return {
+                patientId: patient._id, doctorId: doc._id, appointmentId: appt._id,
+                patientName: patientName, patientAge: 30 + (i % 30), patientGender: i % 2 === 0 ? 'Male' : 'Female', patientBloodGroup: 'O+',
+                doctorName: doc.name, doctorSpecialization: doc.specialization, doctorPhone: '+1234567890',
+                chiefComplaint: appt.symptoms || 'General Checkup', diagnosis: appt.diagnosis || 'Routine review', notes: appt.notes || 'Follow-up prescribed',
+                medicines: [
+                    { name: ['Aspirin', 'Paracetamol', 'Amoxicillin', 'Ibuprofen', 'Ciprofloxacin'][i % 5], dosage: '50mg', frequency: 'Once daily', duration: '5 days', timing: 'after_meal', instructions: 'Take on time' },
+                    { name: ['Vitamin C', 'B Complex', 'Calcium', 'Iron', 'Zinc'][i % 5], dosage: '1 tab', frequency: 'Once daily', duration: '15 days', timing: 'with_meal', instructions: 'Supplement' }
+                ],
+                // Exactly half of the completed patients (first 15) get their medication cleared ('completed'), the other half are pending ('active')
+                status: i < 15 ? 'completed' : 'active'
+            };
+        }).filter(rx => rx !== null);
+
+        for (const prescData of prescriptionsData) {
+            const prescription = new Prescription(prescData);
+            await prescription.save();
+            createdPrescriptions.push(prescription);
+            console.log(`Created prescription for Patient ${prescData.patientName} by Doctor ${prescData.doctorName}`);
+        }
+
+        console.log('Prescriptions seeded successfully!');
+        return createdPrescriptions;
+    } catch (error) {
+        console.error('Error seeding prescriptions:', error);
+        throw error;
+    }
+};
+
+// Seed Vitals for completed appointments
+const seedVitals = async (users, patients, appointments) => {
+    try {
+        const createdVitals = [];
+        const completedAppts = appointments.filter(a => a.status === 'completed');
+
+        for (const appt of completedAppts) {
+            const patient = patients.find(p => String(p._id) === String(appt.patientId));
+            const nurse = users.find(u => String(u._id) === String(appt.vitalsRecordedBy));
+            if (!patient || !nurse) continue;
+
+            const patientUser = users.find(u => String(u._id) === String(patient.userId));
+            const patientName = patientUser ? patientUser.name : 'Unknown Patient';
+
+            const vitalsData = {
+                patientId: patient._id,
+                patientName: patientName,
+                recordedBy: nurse._id,
+                nurseName: nurse.name,
+                bloodPressure: {
+                    systolic: Math.floor(Math.random() * (140 - 110 + 1)) + 110,
+                    diastolic: Math.floor(Math.random() * (90 - 70 + 1)) + 70,
+                },
+                temperature: {
+                    value: parseFloat((Math.random() * (37.5 - 36.1) + 36.1).toFixed(1)),
+                },
+                pulse: {
+                    value: Math.floor(Math.random() * (95 - 65 + 1)) + 65,
+                },
+                spO2: {
+                    value: Math.floor(Math.random() * (100 - 95 + 1)) + 95,
+                },
+                respiratoryRate: {
+                    value: Math.floor(Math.random() * (20 - 12 + 1)) + 12,
+                },
+                weight: patient.weight || 70,
+                height: patient.height || 170,
+                notes: `Symptoms during checkup: ${appt.symptoms}`,
+                recordedAt: appt.vitalsRecordedAt || Date.now()
+            };
+
+            const vitals = new Vitals(vitalsData);
+            await vitals.save();
+            createdVitals.push(vitals);
+            console.log(`Created vitals record for patient ${patientName} by nurse ${nurse.name}`);
+        }
+        console.log('Vitals seeded successfully!');
+        return createdVitals;
+    } catch (error) {
+        console.error('Error seeding vitals:', error);
+        throw error;
+    }
+};
+
+// Seed Bills for the paid appointments
+const seedBills = async (appointments, patients) => {
+    try {
+        const createdBills = [];
+        const completedAppts = appointments.filter(a => a.status === 'completed');
+
+        for (const appt of completedAppts) {
+            const patient = patients.find(p => String(p._id) === String(appt.patientId));
+            if (!patient) continue;
+
+            const billData = {
+                patientId: patient._id,
+                patientName: patient.aadhaarNumber ? `Aadhaar: ${patient.aadhaarNumber}` : `Patient ${patient._id}`,
+                appointmentId: appt._id,
+                items: [
+                    {
+                        description: 'OPD Consultation Fee',
+                        category: 'consultation',
+                        quantity: 1,
+                        unitPrice: appt.opdFee || 300,
+                        total: appt.opdFee || 300
+                    }
+                ],
+                subtotal: appt.opdFee || 300,
+                taxPercent: 0,
+                taxAmount: 0,
+                discountPercent: 0,
+                discountAmount: 0,
+                grandTotal: appt.opdFee || 300,
+                status: 'paid',
+                paymentMethod: appt.opdFeePaymentMethod || 'cash',
+                amountPaid: appt.opdFee || 300,
+                balanceDue: 0,
+                paidAt: appt.opdFeeCollectedAt || new Date()
+            };
+
+            const bill = new Bill(billData);
+            await bill.save();
+            createdBills.push(bill);
+        }
+
+        console.log(`Successfully generated ${createdBills.length} payment bills!`);
+        return createdBills;
+    } catch (error) {
+        console.error('Error seeding bills:', error);
         throw error;
     }
 };
@@ -413,7 +588,16 @@ const seedDatabase = async () => {
         const patients = await seedPatients(users);
 
         // Seed appointments
-        await seedAppointments(users, patients);
+        const appointments = await seedAppointments(users, patients);
+
+        // Seed prescriptions
+        await seedPrescriptions(users, patients, appointments);
+
+        // Seed vitals for completed patients
+        await seedVitals(users, patients, appointments);
+
+        // Seed comprehensive billing payment history
+        await seedBills(appointments, patients);
 
         // Seed activity logs
         await seedActivityLogs(users);

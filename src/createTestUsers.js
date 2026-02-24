@@ -96,7 +96,7 @@ const createTestUsers = async () => {
             {
                 username: 'reception1',
                 password: 'reception123',
-                role: 'reception',
+                role: 'receptionist',
                 name: 'Reception Staff',
                 email: 'reception@example.com'
             },
@@ -104,21 +104,21 @@ const createTestUsers = async () => {
             {
                 username: 'REC001',
                 password: 'RECEPTION2024',
-                role: 'reception',
+                role: 'receptionist',
                 name: 'Priya Sharma',
                 email: 'priya.sharma@example.com'
             },
             {
                 username: 'REC002',
                 password: 'PAT2024',
-                role: 'reception',
+                role: 'receptionist',
                 name: 'Anjali Patel',
                 email: 'anjali.patel@example.com'
             },
             {
                 username: 'REC003',
                 password: 'REDDY2024',
-                role: 'reception',
+                role: 'receptionist',
                 name: 'Sneha Reddy',
                 email: 'sneha.reddy@example.com'
             },
@@ -150,6 +150,21 @@ const createTestUsers = async () => {
                 role: 'admin',
                 name: 'Bhimavarapu Bhavana',
                 email: 'bhimavarapu.bhavana@example.com'
+            },
+            // Add missing Nurse and Pharmacist users
+            {
+                username: 'NUR001',
+                password: 'NURSE2024',
+                role: 'nurse',
+                name: 'Sunita Deshmukh',
+                email: 'sunita.d@example.com'
+            },
+            {
+                username: 'PHAR001',
+                password: 'PHAR2024',
+                role: 'pharmacist',
+                name: 'Anjali Sharma',
+                email: 'anjali.s@example.com'
             }
         ];
 

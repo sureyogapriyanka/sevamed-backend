@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: true,
-    enum: ['admin', 'doctor', 'reception', 'patient']
+    enum: ['admin', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'patient']
   },
   name: {
     type: String,
@@ -33,22 +33,32 @@ const userSchema = new mongoose.Schema({
     enum: ['Male', 'Female', 'Other']
   },
   phone: {
-    type: String
+    type: String,
+    default: ''
   },
   address: {
-    type: String
+    type: String,
+    default: ''
   },
   bloodGroup: {
-    type: String
+    type: String,
+    default: ''
   },
   department: {
-    type: String
+    type: String,
+    default: ''
   },
   specialization: {
-    type: String
+    type: String,
+    default: ''
   },
   profileImage: {
-    type: String
+    type: String,
+    default: ''
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
