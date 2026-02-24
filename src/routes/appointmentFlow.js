@@ -4,8 +4,11 @@ const mongoose = require('mongoose');
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
-const { authorize } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 const WebSocket = require('ws');
+
+// Apply auth to all flow routes
+router.use(auth);
 
 // Helper to broadcast to specific roles via req.wsServer
 const broadcastToRole = (wsServer, role, data) => {
