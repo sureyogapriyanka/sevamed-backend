@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Vitals = require('../models/Vitals');
 const User = require('../models/User');
-const { protect, authorize } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 
 // @route   POST /api/vitals
 // @desc    Record new vitals
 // @access  Nurse, Doctor, Admin
-router.post('/', protect, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
+router.post('/', auth, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
     try {
         const {
             patientId,
@@ -68,7 +68,7 @@ router.post('/', protect, authorize('nurse', 'doctor', 'admin'), async (req, res
 // @route   GET /api/vitals/patient/:patientId
 // @desc    Get vitals history for a patient
 // @access  Nurse, Doctor, Admin
-router.get('/patient/:patientId', protect, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
+router.get('/patient/:patientId', auth, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
         const vitals = await Vitals.find({ patientId: req.params.patientId })
@@ -84,7 +84,7 @@ router.get('/patient/:patientId', protect, authorize('nurse', 'doctor', 'admin')
 // @route   GET /api/vitals/latest/:patientId
 // @desc    Get latest vitals for a patient
 // @access  Nurse, Doctor, Admin, Patient
-router.get('/latest/:patientId', protect, authorize('nurse', 'doctor', 'admin', 'patient'), async (req, res) => {
+router.get('/latest/:patientId', auth, authorize('nurse', 'doctor', 'admin', 'patient'), async (req, res) => {
     try {
         const vitals = await Vitals.findOne({ patientId: req.params.patientId })
             .sort({ recordedAt: -1 });
@@ -98,7 +98,7 @@ router.get('/latest/:patientId', protect, authorize('nurse', 'doctor', 'admin', 
 // @route   GET /api/vitals/alerts
 // @desc    Get all active alerts (last 24h)
 // @access  Nurse, Doctor, Admin
-router.get('/alerts', protect, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
+router.get('/alerts', auth, authorize('nurse', 'doctor', 'admin'), async (req, res) => {
     try {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -124,7 +124,7 @@ router.get('/alerts', protect, authorize('nurse', 'doctor', 'admin'), async (req
 // @route   GET /api/vitals/ward/:wardId
 // @desc    Get today's vitals for a ward
 // @access  Nurse, Admin
-router.get('/ward/:wardId', protect, authorize('nurse', 'admin'), async (req, res) => {
+router.get('/ward/:wardId', auth, authorize('nurse', 'admin'), async (req, res) => {
     try {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);

@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Ward = require('../models/Ward');
-const { protect, authorize } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 
 // @route   GET /api/wards
 // @desc    Get all wards
 // @access  Nurse, Doctor, Admin, Reception
-router.get('/', protect, authorize('nurse', 'doctor', 'admin', 'reception'), async (req, res) => {
+router.get('/', auth, authorize('nurse', 'doctor', 'admin', 'reception'), async (req, res) => {
     try {
         const wards = await Ward.find({ isActive: true });
         res.json(wards);
@@ -18,7 +18,7 @@ router.get('/', protect, authorize('nurse', 'doctor', 'admin', 'reception'), asy
 // @route   POST /api/wards
 // @desc    Create a new ward
 // @access  Admin only
-router.post('/', protect, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin'), async (req, res) => {
     try {
         const { wardName, wardCode, floor, totalBeds } = req.body;
 
@@ -54,7 +54,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // @route   PUT /api/wards/:wardId/bed/:bedNumber/assign
 // @desc    Assign patient to a specific bed
 // @access  Nurse, Admin, Reception
-router.put('/:wardId/bed/:bedNumber/assign', protect, authorize('nurse', 'admin', 'reception'), async (req, res) => {
+router.put('/:wardId/bed/:bedNumber/assign', auth, authorize('nurse', 'admin', 'reception'), async (req, res) => {
     try {
         const { patientId, patientName, assignedNurse, assignedNurseName } = req.body;
         const { wardId, bedNumber } = req.params;
@@ -87,7 +87,7 @@ router.put('/:wardId/bed/:bedNumber/assign', protect, authorize('nurse', 'admin'
 // @route   PUT /api/wards/:wardId/bed/:bedNumber/discharge
 // @desc    Discharge patient from bed
 // @access  Nurse, Admin, Reception
-router.put('/:wardId/bed/:bedNumber/discharge', protect, authorize('nurse', 'admin', 'reception'), async (req, res) => {
+router.put('/:wardId/bed/:bedNumber/discharge', auth, authorize('nurse', 'admin', 'reception'), async (req, res) => {
     try {
         const { wardId, bedNumber } = req.params;
 
