@@ -285,11 +285,12 @@ const seedAppointments = async (users, patients) => {
             });
         }
 
-        // 2. 20 Active / Queued Patients
+        // 2. 20 Active / Queued Patients (Assigning all to Doctor 1 for demo purposes)
         for (let i = 31; i <= 50; i++) {
-            const docIndex = i <= 40 ? 0 : (i <= 45 ? 1 : 2); // 10 to Doc1, 5 to Doc2, 5 to Doc3
+            const docIndex = 0; // Assign all to Doc1 so they see 20 in queue
             const symp = symptomsList[i % symptomsList.length];
-            const status = i % 3 === 0 ? 'consulting' : 'booked';
+            // Set all to 'vitals_done' so they appear in the doctor's queue management
+            const status = 'vitals_done';
             appointmentsData.push({
                 patientId: patients[i]?._id,
                 doctorId: doctorUsers[docIndex]?._id,
@@ -306,7 +307,7 @@ const seedAppointments = async (users, patients) => {
             patientId: patients[0]?._id,
             doctorId: doctorUsers[0]?._id, // Assign to default doctor DOC001
             scheduledAt: new Date(Date.now() + 10 * 60000),
-            status: 'booked',
+            status: 'vitals_done',
             priority: 'normal',
             symptoms: 'Routine Checkup and Platform Demo',
             notes: 'Demo Patient'

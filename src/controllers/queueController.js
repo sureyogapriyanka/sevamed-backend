@@ -6,7 +6,10 @@ const Patient = require('../models/Patient');
 exports.getAllQueueEntries = async (req, res) => {
     try {
         const queueEntries = await Queue.find()
-            .populate('patientId', 'name')
+            .populate({
+                path: 'patientId',
+                populate: { path: 'userId', select: 'name phone' }
+            })
             .populate('doctorId', 'name department');
         res.json(queueEntries);
     } catch (error) {
@@ -19,7 +22,10 @@ exports.getQueueByDoctorId = async (req, res) => {
     try {
         const { doctorId } = req.params;
         const queueEntries = await Queue.find({ doctorId })
-            .populate('patientId', 'name')
+            .populate({
+                path: 'patientId',
+                populate: { path: 'userId', select: 'name phone' }
+            })
             .sort({ position: 1 });
         res.json(queueEntries);
     } catch (error) {
@@ -32,7 +38,10 @@ exports.getQueueEntryById = async (req, res) => {
     try {
         const { id } = req.params;
         const queueEntry = await Queue.findById(id)
-            .populate('patientId', 'name')
+            .populate({
+                path: 'patientId',
+                populate: { path: 'userId', select: 'name phone' }
+            })
             .populate('doctorId', 'name department');
 
         if (!queueEntry) {
@@ -82,8 +91,10 @@ exports.createQueueEntry = async (req, res) => {
         const savedQueueEntry = await queueEntry.save();
 
         // Populate references before sending response
-        await savedQueueEntry.populate('patientId', 'name');
-        await savedQueueEntry.populate('doctorId', 'name department');
+        await savedQueueEntry.populate([
+            { path: 'patientId', populate: { path: 'userId', select: 'name' } },
+            { path: 'doctorId', select: 'name department' }
+        ]);
 
         res.status(201).json(savedQueueEntry);
     } catch (error) {
@@ -119,8 +130,10 @@ exports.updateQueueEntry = async (req, res) => {
         const updatedQueueEntry = await queueEntry.save();
 
         // Populate references before sending response
-        await updatedQueueEntry.populate('patientId', 'name');
-        await updatedQueueEntry.populate('doctorId', 'name department');
+        await updatedQueueEntry.populate([
+            { path: 'patientId', populate: { path: 'userId', select: 'name' } },
+            { path: 'doctorId', select: 'name department' }
+        ]);
 
         res.json(updatedQueueEntry);
     } catch (error) {
