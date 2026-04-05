@@ -46,10 +46,28 @@ const createPatient = async (req, res) => {
     }
 };
 
-// Get all patients
+// Get all patients (with optional search)
 const getPatients = async (req, res) => {
     try {
-        const patients = await Patient.find().populate('userId', 'name username email age gender phone address bloodGroup');
+        const { search } = req.query;
+        let query = {};
+
+        if (search) {
+            // Search in User model for name/phone, then map back to patients
+            const users = await User.find({
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { phone: { $regex: search, $options: 'i' } },
+                    { username: { $regex: search, $options: 'i' } }
+                ],
+                role: 'patient'
+            }).select('_id');
+            
+            const userIds = users.map(u => u._id);
+            query = { userId: { $in: userIds } };
+        }
+
+        const patients = await Patient.find(query).populate('userId', 'name username email age gender phone address bloodGroup');
         res.json(patients);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });

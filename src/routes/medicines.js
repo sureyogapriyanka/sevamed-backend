@@ -33,6 +33,8 @@ router.get('/', authorize('pharmacist', 'admin', 'doctor'), async (req, res) => 
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { genericName: { $regex: search, $options: 'i' } },
+                { symptoms: { $regex: search, $options: 'i' } },
+                { sideEffects: { $regex: search, $options: 'i' } },
                 { barcode: search }
             ];
         }
@@ -57,7 +59,9 @@ router.get('/search', authorize('pharmacist', 'admin'), async (req, res) => {
         const medicines = await Medicine.find({
             $or: [
                 { name: { $regex: q, $options: 'i' } },
-                { genericName: { $regex: q, $options: 'i' } }
+                { genericName: { $regex: q, $options: 'i' } },
+                { symptoms: { $regex: q, $options: 'i' } },
+                { sideEffects: { $regex: q, $options: 'i' } }
             ],
             isActive: true
         })
@@ -278,6 +282,99 @@ router.get('/transactions/:medicineId', authorize('pharmacist', 'admin'), async 
             .sort({ createdAt: -1 })
             .populate('performedBy', 'name');
         res.json(transactions);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+// ROUTE 10 — GET /reports/inventory (Analytics)
+router.get('/reports/inventory', authorize('pharmacist', 'admin'), async (req, res) => {
+    try {
+        const stats = await Medicine.aggregate([
+            { $match: { isActive: true } },
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 },
+                    totalStock: { $sum: "$currentStock" },
+                    inStock: { $sum: { $cond: [{ $eq: ["$stockStatus", "in_stock"] }, 1, 0] } },
+                    lowStock: { $sum: { $cond: [{ $eq: ["$stockStatus", "low_stock"] }, 1, 0] } },
+                    outOfStock: { $sum: { $cond: [{ $eq: ["$stockStatus", "out_of_stock"] }, 1, 0] } },
+                    expired: { $sum: { $cond: [{ $eq: ["$stockStatus", "expired"] }, 1, 0] } },
+                    inventoryValue: { $sum: { $multiply: ["$currentStock", "$purchasePrice"] } }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        const totals = await Medicine.aggregate([
+            { $match: { isActive: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalSKUs: { $sum: 1 },
+                    totalInventoryValue: { $sum: { $multiply: ["$currentStock", "$purchasePrice"] } },
+                    totalAlerts: { 
+                        $sum: { 
+                            $cond: [
+                                { $in: ["$stockStatus", ["low_stock", "out_of_stock", "expired"]] }, 1, 0
+                            ] 
+                        } 
+                    }
+                }
+            }
+        ]);
+
+        res.json({ categories: stats, summary: totals[0] || { totalSKUs: 0, totalInventoryValue: 0, totalAlerts: 0 } });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+// ROUTE 11 — GET /reports/sales (Financial Trends)
+router.get('/reports/sales', authorize('pharmacist', 'admin'), async (req, res) => {
+    try {
+        const days = 30;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const salesTrend = await StockTransaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'dispense',
+                    createdAt: { $gte: startDate }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    unitsDispensed: { $sum: { $abs: "$quantity" } },
+                    transactionCount: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Top moving items
+        const topMedicines = await StockTransaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'dispense',
+                    createdAt: { $gte: startDate }
+                }
+            },
+            {
+                $group: {
+                    _id: "$medicineName",
+                    totalQuantity: { $sum: { $abs: "$quantity" } },
+                    medicinesId: { $first: "$medicineId" }
+                }
+            },
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 10 }
+        ]);
+
+        res.json({ salesTrend, topMedicines });
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }

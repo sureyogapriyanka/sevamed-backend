@@ -121,8 +121,15 @@ const appointmentSchema = new mongoose.Schema({
   tokenNumber: {
     type: String,
     default: ''
-  } // Format: T-001, T-002, etc.
-
+  }, // Format: T-001, T-002, etc.
+  reportUrl: {
+    type: String,
+    default: null
+  },
+  reportDocxUrl: {
+    type: String,
+    default: null
+  }
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
 });

@@ -6,6 +6,7 @@ const Patient = require('../models/Patient');
 const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
 const WebSocket = require('ws');
+const { generateReport } = require('../services/documentService');
 
 // Apply auth to all flow routes
 router.use(auth);
@@ -198,11 +199,25 @@ router.post('/complete/:id', authorize('receptionist', 'reception', 'admin'), as
 // ─── ROUTE 7: POST /dispensed/:id (Pharmacist dispensing) ───────────────────
 router.post('/dispensed/:id', authorize('pharmacist', 'admin'), async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointment = await Appointment.findById(req.params.id).populate('patientId');
         if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
         appointment.status = 'dispensed';
+        
+        appointment.notifications.push({
+            role: 'patient',
+            message: `Your prescription has been dispensed. You can view the digital receipt in your dashboard.`
+        });
+
         await appointment.save();
+
+        // Broadcast to patient
+        broadcastToRole(req.wsServer, 'patient', {
+            type: 'medicine_dispensed',
+            appointmentId: appointment._id,
+            patientName: appointment.patientId.name,
+            message: 'Your medicines have been dispensed. Digital receipt is now available.'
+        });
 
         res.json(appointment);
     } catch (err) {
@@ -246,13 +261,14 @@ router.get('/today', authorize('receptionist', 'reception', 'nurse', 'doctor', '
             query.doctorId = req.user.id;
             query.status = { $in: ['vitals_done', 'consulting'] };
         } else if (req.user.role === 'pharmacist') {
-            query.status = { $in: ['completed', 'consulting'] };
+            // Pharmacists see full clinical lifecycle for dispensing
+            query.status = { $in: ['completed', 'dispensed', 'consulted', 'billing'] };
         }
 
         const appointments = await Appointment.find(query)
             .populate({
                 path: 'patientId',
-                populate: { path: 'userId', select: 'name phone age gender bloodGroup' }
+                populate: { path: 'userId', select: 'name phone age gender bloodGroup profileImage' }
             })
             .populate('doctorId', 'name specialization')
             .sort({ tokenNumber: 1, scheduledAt: 1 });
@@ -271,6 +287,121 @@ router.get('/today', authorize('receptionist', 'reception', 'nurse', 'doctor', '
         res.json(normalised);
     } catch (err) {
         res.status(500).json({ message: 'Today list error', error: err.message });
+    }
+});
+
+// ─── ROUTE 10: GET /latest-session/:patientId (For session intake) ───────
+router.get('/latest-session/:patientId', authorize('pharmacist', 'admin', 'doctor', 'receptionist'), async (req, res) => {
+    try {
+        // Find most recent completed/consulted/billing/dispensing appointment
+        const appointment = await Appointment.findOne({ 
+            patientId: req.params.patientId,
+            status: { $in: ['consulted', 'billing', 'completed', 'dispensed'] }
+        })
+        .sort({ scheduledAt: -1 })
+        .populate('prescriptionId')
+        .populate('doctorId', 'name')
+        .populate({
+            path: 'patientId',
+            populate: { path: 'userId', select: 'name phone age gender bloodGroup' }
+        });
+
+        if (!appointment) {
+            return res.json({ message: 'No doctor report detected', hasPrescription: false });
+        }
+
+        res.json({ ...appointment.toObject(), hasPrescription: !!appointment.prescriptionId });
+    } catch (err) {
+        res.status(500).json({ message: 'Latest session query error', error: err.message });
+    }
+});
+
+// ─── ROUTE 11: GET /pharmacist-stats (Metrics for Dashboard) ───────────────
+router.get('/pharmacist-stats', authorize('pharmacist', 'admin'), async (req, res) => {
+    try {
+        const StockTransaction = mongoose.model('StockTransaction');
+        
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        // 1. Total Medicines Dispensed (Units)
+        const dispenseResult = await StockTransaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'dispense',
+                    createdAt: { $gte: todayStart, $lte: todayEnd }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalUnits: { $sum: { $abs: "$quantity" } }
+                }
+            }
+        ]);
+
+        // 2. Active Ready-for-Dispensing (Completed but not dispensed yet)
+        const readyCount = await Appointment.countDocuments({
+            status: 'completed',
+            scheduledAt: { $gte: todayStart, $lte: todayEnd }
+        });
+
+        // 3. Historical Fulfillment (Dispensed Today)
+        const dispensedCount = await Appointment.countDocuments({
+            status: 'dispensed',
+            scheduledAt: { $gte: todayStart, $lte: todayEnd }
+        });
+
+        res.json({
+            totalUnitsToday: dispenseResult[0]?.totalUnits || 0,
+            readyCases: readyCount,
+            dispensedCasesToday: dispensedCount
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Stats calculation error', error: err.message });
+    }
+});
+
+// ─── ROUTE 12: POST /report/:id (Generate Formal Report) ───────────────────
+router.post('/report/:id', authorize('doctor', 'admin'), async (req, res) => {
+    try {
+        const { reportData } = req.body;
+        const appointment = await Appointment.findById(req.params.id)
+            .populate('patientId')
+            .populate('doctorId', 'name');
+
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+        const [pdfFile, docxFile] = await Promise.all([
+            generateReport({
+                ...reportData,
+                appointmentId: appointment._id,
+                patientName: appointment.patientId.userId?.name || appointment.patientId.name || 'Unknown Patient',
+                doctorName: appointment.doctorId?.name || 'Dr. SevaMed',
+                date: new Date().toLocaleDateString()
+            }, 'pdf'),
+            generateReport({
+                ...reportData,
+                appointmentId: appointment._id,
+                patientName: appointment.patientId.userId?.name || appointment.patientId.name || 'Unknown Patient',
+                doctorName: appointment.doctorId?.name || 'Dr. SevaMed',
+                date: new Date().toLocaleDateString()
+            }, 'docx')
+        ]);
+
+        appointment.reportUrl = `/uploads/reports/${pdfFile}`;
+        appointment.reportDocxUrl = `/uploads/reports/${docxFile}`;
+        await appointment.save();
+
+        res.json({ 
+            message: 'Reports generated successfully', 
+            reportUrl: appointment.reportUrl,
+            reportDocxUrl: appointment.reportDocxUrl 
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Report generation error', error: err.message });
     }
 });
 

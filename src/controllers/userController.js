@@ -263,6 +263,19 @@ const updateUserById = async (req, res) => {
     }
 };
 
+// Get staff for chat (all staff roles except patient)
+const getStaffForChat = async (req, res) => {
+    try {
+        const staffRoles = ['admin', 'doctor', 'nurse', 'receptionist', 'pharmacist'];
+        const users = await User.find({ role: { $in: staffRoles } })
+            .select('name username role department specialization profileImage')
+            .sort({ name: 1 });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -271,5 +284,6 @@ module.exports = {
     getUserByUsername,
     getAllUsers,
     getUsersByRole,
-    updateUserById
+    updateUserById,
+    getStaffForChat
 };

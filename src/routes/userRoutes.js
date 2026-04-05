@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { registerUser, loginUser, getUserProfile, updateUserProfile, getUserByUsername, getAllUsers, getUsersByRole, updateUserById } = require('../controllers/userController');
+const { registerUser, loginUser, getUserProfile, updateUserProfile, getUserByUsername, getAllUsers, getUsersByRole, updateUserById, getStaffForChat } = require('../controllers/userController');
 const { auth, authorize } = require('../middleware/auth');
 
 // Public routes
@@ -17,6 +17,7 @@ router.put('/profile', auth, updateUserProfile);
 // Admin routes
 router.get('/role/all', auth, authorize('admin', 'receptionist'), getAllUsers);
 router.get('/role/:role', auth, authorize('admin', 'receptionist', 'doctor', 'nurse'), getUsersByRole);
+router.get('/chat/staff', auth, getStaffForChat);
 router.put('/:id', auth, authorize('admin'), updateUserById);
 
 // ─── Staff Management Routes (Admin only) ────────────────────────────────────

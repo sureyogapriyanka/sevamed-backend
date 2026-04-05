@@ -81,6 +81,7 @@ router.get('/', authorize('admin', 'doctor'), async (req, res) => {
 router.get('/patient/:patientId', authorize('admin', 'doctor', 'patient', 'pharmacist'), async (req, res) => {
     try {
         const prescriptions = await Prescription.find({ patientId: req.params.patientId })
+            .populate('appointmentId', 'reportUrl')
             .sort({ issuedAt: -1 })
             .lean();
         res.json(prescriptions);

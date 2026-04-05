@@ -13,6 +13,9 @@ const MedicineSchema = new mongoose.Schema({
         required: true
     },
     description: { type: String, default: '' },
+    symptoms: { type: [String], default: [] },
+    sideEffects: { type: [String], default: [] },
+    imageUrl: { type: String, default: '' },
 
     // BARCODE & IDENTIFICATION
     barcode: { type: String, unique: true, sparse: true, default: '' },

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -18,6 +19,7 @@ app.use(morgan('combined')); // Logging
 // Increase body parser limits to handle profile images
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with larger limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies with larger limit
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Create HTTP server
 const http = require('http');
